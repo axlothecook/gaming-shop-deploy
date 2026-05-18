@@ -1,0 +1,46 @@
+# Gaming Shop — local development stack.
+# Brings up 3 services together: mongo, backend, frontend.
+# Run from this folder with:  docker compose up
+#
+# NOTE: this file uses `build:` (builds images from the local repos) — that is
+# for LOCAL dev. The Pi/production will use a separate compose file that pulls
+# pre-built images from GHCR instead. (See DEPLOY.md.)
+
+services:
+  # --- MongoDB ---------------------------------------------------------------
+  mongo:
+    image: mongo:8                       # official MongoDB image, pulled from Docker Hub
+    restart: unless-stopped              # auto-restart on crash / host reboot
+    volumes:
+      - mongo-data:/data/db              # persist the DB on a named volume (see bottom).
+                                         # /data/db is where MongoDB stores its files.
+
+  # --- Backend (Express API) -------------------------------------------------
+  backend:
+    build: ../Gaming-Shop                # build the image from the backend repo's Dockerfile
+    restart: unless-stopped
+    env_file: .env                       # inject the 7 backend env vars from ./.env
+    depends_on:
+      - mongo                            # start mongo before backend
+    # No `ports:` — the backend is only reached by the frontend over the
+    # internal Compose network, not from your host directly.
+
+  # --- Frontend (SvelteKit / adapter-node) -----------------------------------
+  frontend:
+    build:
+      context: ../Gaming-shop-frontend   # build from the frontend repo's Dockerfile
+      args:
+        # LINK is baked in at BUILD time ($env/static/private). Inside the
+        # Compose network the backend is reachable as http://backend:3000
+        # ("backend" = the service name above).
+        LINK: http://backend:3000
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"                      # publish frontend to the host: localhost:3000
+
+# Named volume — Docker manages this on disk; it survives `docker compose down`
+# and container restarts, so the database is not wiped.
+volumes:
+  mongo-data:
