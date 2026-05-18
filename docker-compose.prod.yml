@@ -1,0 +1,37 @@
+# Gaming Shop — PRODUCTION stack (the Raspberry Pi).
+# Pulls pre-built images from GHCR — does NOT build anything on the Pi.
+# The CI pipeline (GitHub Actions) builds + pushes the images; the Pi only pulls.
+#
+# Run on the Pi from this folder with:
+#   docker compose -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# For LOCAL development (builds from the sibling repos) use docker-compose.dev.yml.
+
+services:
+  # --- MongoDB ---------------------------------------------------------------
+  mongo:
+    image: mongo:8                       # official MongoDB image, from Docker Hub
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db              # persist the DB on a named volume
+
+  # --- Backend (Express API) -------------------------------------------------
+  backend:
+    image: ghcr.io/axlothecook/gaming-shop-backend:latest   # pulled from GHCR
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      - mongo
+
+  # --- Frontend (SvelteKit / adapter-node) -----------------------------------
+  frontend:
+    image: ghcr.io/axlothecook/gaming-shop-frontend:latest  # pulled from GHCR
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+
+volumes:
+  mongo-data:
