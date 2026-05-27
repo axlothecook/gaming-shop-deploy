@@ -33,5 +33,26 @@ services:
     ports:
       - "3000:3000"
 
+  # --- Cloudflare Tunnel (cloudflared) ---------------------------------------
+  # Connects the Pi OUTBOUND to Cloudflare's edge so gameshop.axlothecook.com
+  # reaches the frontend — no open ports / no static IP needed.
+  # Routing (hostname -> service) is configured in the Cloudflare Zero Trust
+  # dashboard (this is a "dashboard-managed" tunnel); the container only needs
+  # the tunnel TOKEN to authenticate. In the dashboard set the Public Hostname
+  # gameshop.axlothecook.com -> Service HTTP -> frontend:3000 (the frontend is
+  # reached by its SERVICE NAME over the internal Compose network).
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run    # `run` starts the tunnel; --no-autoupdate
+                                           # keeps the container stable (upgrade by
+                                           # pulling a newer image instead).
+    environment:
+      # Token from the Zero Trust dashboard, kept in .env (gitignored). Passing
+      # it via env (not --token on the CLI) keeps it out of the process list.
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    depends_on:
+      - frontend
+
 volumes:
   mongo-data:
