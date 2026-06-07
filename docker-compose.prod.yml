@@ -28,6 +28,12 @@ services:
   frontend:
     image: ghcr.io/axlothecook/gaming-shop-frontend:latest  # pulled from GHCR
     restart: unless-stopped
+    environment:
+      # adapter-node defaults to a 512KB request body limit, which rejects normal
+      # game-cover images on upload/update. Allow up to 3.5MB (matches the backend
+      # multer limit). ORIGIN is intentionally NOT set here — the Cloudflare tunnel
+      # forwards the real host so adapter-node's CSRF check already passes.
+      BODY_SIZE_LIMIT: "3500000"
     depends_on:
       - backend
     ports:

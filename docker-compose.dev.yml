@@ -19,7 +19,13 @@ services:
   backend:
     build: ../Gaming-Shop                # build the image from the backend repo's Dockerfile
     restart: unless-stopped
-    env_file: .env                       # inject the 7 backend env vars from ./.env
+    env_file:
+      # Load the backend repo's .env FIRST for its R2_* keys (the deploy .env here
+      # doesn't carry them), then this .env SECOND so its DB host (mongodb://mongo)
+      # overrides the backend repo's mongodb://localhost — inside Compose the DB is
+      # reached by the service name `mongo`, not localhost. (Later file wins.)
+      - ../Gaming-Shop/.env
+      - .env
     depends_on:
       - mongo                            # start mongo before backend
     # No `ports:` — the backend is only reached by the frontend over the
@@ -35,6 +41,14 @@ services:
         # ("backend" = the service name above).
         LINK: http://backend:3000
     restart: unless-stopped
+    environment:
+      # adapter-node's CSRF check rejects POST form submits unless ORIGIN matches
+      # the URL the app is actually served from. Locally that's http://localhost:3000.
+      # (Prod doesn't need this here — the Cloudflare tunnel serves the real origin.)
+      ORIGIN: http://localhost:3000
+      # adapter-node defaults to a 512KB request body limit, which rejects normal
+      # game-cover images. Allow up to 3.5MB (matches the backend multer limit).
+      BODY_SIZE_LIMIT: "3500000"
     depends_on:
       - backend
     ports:

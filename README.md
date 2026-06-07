@@ -7,6 +7,11 @@ Cloudflare Tunnel.
 **Live:** <https://gameshop.axlothecook.com> (self-hosted on a Raspberry Pi,
 exposed via Cloudflare Tunnel — no open ports / no static IP).
 
+## Related repositories
+
+- [Front end](https://github.com/axlothecook/Gaming-shop-frontend.git)
+- [Back end](https://github.com/axlothecook/Gaming-Shop)
+
 ## Stacks
 
 - **`docker-compose.dev.yml`** — local-dev stack (3 services: mongo, backend,
