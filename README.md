@@ -1,4 +1,4 @@
-# Gaming shop deploy
+# Deploy stack for Gaming Shop repo
 This repo runs the whole Gaming Shop on Raspberry Pi. It consists of config files that describe how to run the 4 Docker containers together: docker-compose.prod.yml for the Pi, docker-compose.dev.yml for local development, and .env.example.
 <br />
 <br />
@@ -56,7 +56,15 @@ The backend repo's CI is build-only, so a backend change goes live with the next
 <br />
 <br />
 
-## Related repositories
-[Front end](https://github.com/axlothecook/Gaming-shop-frontend): the SvelteKit site this stack serves <br />
-[Back end](https://github.com/axlothecook/Gaming-Shop): the Express + MongoDB API <br />
-[Umbrella](https://github.com/axlothecook/gameshop): a joint repo for all Gaming Shop related repositories
+## Tech stack
+[Docker Compose](https://docs.docker.com/compose/): runs the 4 containers together as one stack. There is also a second file, `docker-compose.dev.yml`, for local development: it builds the images on my PC from the sibling repos instead of pulling them from GHCR <br />
+[GitHub Actions](https://github.com/features/actions) + GHCR (arm64): CI builds the images and GHCR stores them <br />
+[Tailscale](https://tailscale.com): the private connection CI uses to reach the Pi <br />
+[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-tunnel/): connects the Pi to the internet without opening ports, and sends visitors straight to the frontend container. This project has no nginx in front; the frontend's own Node server answers the requests <br />
+[mongodump](https://www.mongodb.com/docs/database-tools/mongodump/): the nightly database backups
+
+
+## Where this sits in the pipeline's evolution
+This is the first version of my [CI/CD pipeline](https://github.com/axlothecook/homelab-ci-cd). The deploy job did not exist at first: for the first week, CI only built the image and I updated the Pi by hand. The backend repo still works that way, so a backend change goes live with the next stack restart.
+
+Compared to the later versions, this one is missing a few things. Fir starters old images are not cleaned up after deploys, the frontend publishes a port on the Pi, and there is no reverse proxy. The frontend's test gate also came much later; I brought it back here after building the gates for the archery project.
