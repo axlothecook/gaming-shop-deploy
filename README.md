@@ -62,7 +62,7 @@ The backend repo's CI is build-only, so a backend change goes live with the next
 [Tailscale](https://tailscale.com): the private connection CI uses to reach the Pi <br />
 [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-tunnel/): connects the Pi to the internet without opening ports, and sends visitors straight to the frontend container. This project has no nginx in front; the frontend's own Node server answers the requests <br />
 [mongodump](https://www.mongodb.com/docs/database-tools/mongodump/): the nightly database backups
-
+<br />
 
 ## Where this sits in the pipeline's evolution
 This is the first version of my [CI/CD pipeline](https://github.com/axlothecook/homelab-ci-cd). The deploy job did not exist at first: for the first week, CI only built the image and I updated the Pi by hand. The backend repo still works that way, so a backend change goes live with the next stack restart.
