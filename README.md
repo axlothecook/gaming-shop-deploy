@@ -1,56 +1,61 @@
-# gaming-shop-deploy
+# Gaming shop deploy
+This repo runs the whole Gaming Shop on Raspberry Pi. It consists of config files that describe how to run the 4 Docker containers together: docker-compose.prod.yml for the Pi, docker-compose.dev.yml for local development, and .env.example.
+<br />
+<br />
 
-Deployment orchestration for the Gaming Shop project — ties together the
-backend (`Gaming-Shop`), frontend (`Gaming-shop-frontend`), MongoDB, and the
-Cloudflare Tunnel.
+## Docker containers
+<ul> 
+	<li>database: [MongoDB](https://www.mongodb.com)</li> 
+	<li>backend: Express API (from GHCR)</li> 
+	<li>frontend: the public site (from GHCR)</li> 
+	<li>cloudflared: [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-tunnel/)</li> 
+</ul>
 
-**Live:** <https://gameshop.axlothecook.com> (self-hosted on a Raspberry Pi,
-exposed via Cloudflare Tunnel — no open ports / no static IP).
+
+## What does each container do
+### MongoDB 
+It stores games, genres and developers as documents, along with the links to their R2 images. Its data lives in a named volume, so a redeploy does not wipe it, and it restarts on its own if it crashes.
+
+### The backend 
+It runs the API image pulled from GHCR, reads its config and secrets from the .env file, and waits for the database container to start before it does.
+
+### The frontend 
+It runs the site image pulled from GHCR. It is the only container visitors ever reach; it talks to the backend by its service name inside the Docker network, so the backend never needs a public address.
+
+### Cloudflare Tunnel 
+It runs Cloudflare's tunnel client, which dials out to Cloudflare. That is how the [site's domain](https://gameshop.axlothecook.com) reaches the frontend without port forwarding or a static IP on my home network.
+
+### The dev stack
+This is docker-compose.dev.yml: the same idea minus the tunnel. It builds the images from the sibling repos on my PC instead of pulling them from GHCR.
+<br />
+<br />
+
+## Why no graph here
+The runtime graph for this stack already lives in the [umbrella README](https://github.com/axlothecook/gameshop/blob/main/README.md). It shows exactly the containers this repo runs and how they connect, so this README does not repeat it.
+<br />
+<br />
+
+## The config
+Since I cannot commit .env to git, and the real values live only in the Pi's .env, the .env.example lists what the Pi needs: the Mongo connection values, the R2 keys for image storage, and the Cloudflare TUNNEL_TOKEN.
+<br />
+<br />
+
+## Backups
+A cron job on the Pi runs a nightly mongodump (compressed archive) and keeps the last 5 days of archives; each one also gets copied off the Pi to my PC, so an SD card failure cannot take the data with it. The backup script lives on the Pi itself, not in this repo.
+<br />
+<br />
+
+## Deployment
+Handled by my shared [CI/CD pipeline](https://github.com/axlothecook/homelab-ci-cd):
+(1) a push to the frontend repo runs its tests and 
+(2) CI builds the arm64 image
+(3) then the Pi pulls it and restarts the stack. 
+
+The backend repo's CI is build-only, so a backend change goes live with the next stack restart.
+<br />
+<br />
 
 ## Related repositories
-
-- [Front end](https://github.com/axlothecook/Gaming-shop-frontend.git)
-- [Back end](https://github.com/axlothecook/Gaming-Shop)
-
-## Stacks
-
-- **`docker-compose.dev.yml`** — local-dev stack (3 services: mongo, backend,
-  frontend; builds images from the sibling repos via relative paths).
-- **`docker-compose.prod.yml`** — production/Pi stack (4 services: mongo,
-  backend, frontend, **cloudflared**); pulls pre-built `arm64` images from GHCR
-  rather than building on the Pi.
-
-## Local development run
-
-1. `cp .env.example .env` and fill in the values (see below).
-2. `docker compose -f docker-compose.dev.yml up --build`
-3. Open http://localhost:3000
-
-## Environment (`.env`, gitignored)
-
-Copy `.env.example` and fill in:
-
-- **Mongo** — `NODE_ENV_DB_LOCALHOST`, `NODE_ENV_PORT_LOCALHOST`, collection paths.
-- **Cloudflare R2** (image storage) — `R2_ACCOUNT_ID`, `R2_BUCKET`,
-  `R2_PUBLIC_BASE`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`. Images are served
-  from `images.axlothecook.com` (shared bucket `axlothecook-images`,
-  `gameshop/` key prefix). Migrated off Supabase, which pauses free-tier
-  projects after 7 days idle.
-- **Cloudflare Tunnel** (prod only) — `TUNNEL_TOKEN` from the Zero Trust
-  dashboard tunnel (`axlothecook-pi`). Routes `gameshop.axlothecook.com` ->
-  `frontend:3000`.
-
-## Production deploy (the Pi)
-
-CI handles it: pushing to `Gaming-shop-frontend` main builds the image and runs
-a `deploy-to-pi` job that SSHes to the Pi over Tailscale and runs
-`docker compose -f docker-compose.prod.yml pull && up -d`. The backend repo's
-CI is build-only; deploying a backend change is a manual `pull` + `up -d` on the
-Pi (or piggybacks on the next frontend deploy).
-
-Manual run on the Pi (from `~/gaming-shop-deploy`):
-
-```sh
-docker compose -f docker-compose.prod.yml pull
-docker compose -f docker-compose.prod.yml up -d
-```
+[Front end](https://github.com/axlothecook/Gaming-shop-frontend): the SvelteKit site this stack serves <br />
+[Back end](https://github.com/axlothecook/Gaming-Shop): the Express + MongoDB API <br />
+[Umbrella](https://github.com/axlothecook/gameshop): a joint repo for all Gaming Shop related repositories
