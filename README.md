@@ -5,15 +5,16 @@ This repo runs the whole Gaming Shop on Raspberry Pi. It consists of config file
 
 ## Docker containers
 <ul> 
-	<li>database: [MongoDB](https://www.mongodb.com)</li> 
+	<li>database: MongoDB</li> 
 	<li>backend: Express API (from GHCR)</li> 
 	<li>frontend: the public site (from GHCR)</li> 
-	<li>cloudflared: [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-tunnel/)</li> 
+	<li>cloudflared: Cloudflare Tunnel</li> 
 </ul>
+<br />
 
 
 ## What does each container do
-### MongoDB 
+### [MongoDB](https://www.mongodb.com)
 It stores games, genres and developers as documents, along with the links to their R2 images. Its data lives in a named volume, so a redeploy does not wipe it, and it restarts on its own if it crashes.
 
 ### The backend 
@@ -22,7 +23,7 @@ It runs the API image pulled from GHCR, reads its config and secrets from the .e
 ### The frontend 
 It runs the site image pulled from GHCR. It is the only container visitors ever reach; it talks to the backend by its service name inside the Docker network, so the backend never needs a public address.
 
-### Cloudflare Tunnel 
+### [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-tunnel/)
 It runs Cloudflare's tunnel client, which dials out to Cloudflare. That is how the [site's domain](https://gameshop.axlothecook.com) reaches the frontend without port forwarding or a static IP on my home network.
 
 ### The dev stack
